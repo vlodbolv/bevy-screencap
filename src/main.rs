@@ -5,7 +5,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use std::collections::VecDeque;
-use std::env;
+
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
