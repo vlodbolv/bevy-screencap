@@ -1,36 +1,36 @@
-# Bevy Fixed-Step Recorder (Bevy 0.18)
+# Bevy Fixed-Step Recorder
 
-This project is a Rust application built with the [Bevy Game Engine](https://bevyengine.org/) (version 0.18 dev). It demonstrates a 3D scene with a deterministic, fixed-timestep recording system that allows you to capture perfectly smooth 30 FPS video regardless of your actual rendering framerate.
+This project is a modular Rust application built with **Bevy 0.18**. It demonstrates a 3D scene with a deterministic, fixed-timestep recording system that allows you to capture perfectly smooth 30 FPS video regardless of your actual rendering framerate.
 
-## 🌟 Features
+The codebase is structured to separate the "Engine/Recorder" logic from the "Game/Animation" content.
 
-* **Fixed-Timestep Recording:** Decouples simulation time from real time. Pressing record locks the physics/animation delta to exactly `1/30`th of a second.
-* **Window Capture:** Uses Bevy 0.18's new Observer/Command pattern (`Screenshot::primary_window()`) to safely capture the GPU backbuffer.
-* **Automated Export:** Saves frames sequentially to timestamped folders (`out/rec_<timestamp>/`).
-* **Video Conversion:** Includes a helper script to stitch PNG frames into an MP4 video using FFmpeg.
+## 📂 Project Structure
+
+* **`src/main.rs`**: Entry point that assembles the App.
+* **`src/plugin.rs`**: The reusable **Recorder Plugin**. Handles UI, input, fixed-time calculations, and screenshot saving.
+* **`src/animation.rs`**: The **Content Plugin**. Contains the scene, camera, and object animation logic.
 
 ---
 
 ## 🚀 Setup & Installation
 
-This project is designed to run inside a **Distrobox** container to ensure a consistent environment (especially for graphics drivers and libraries).
+This project is designed to run inside a **Distrobox** container to ensure a consistent environment (graphics drivers, system libraries, FFmpeg).
 
-### Step 1: Initialize the Container
-**⚠️ IMPORTANT:** You must start by creating the isolated environment.
+### 1. Initialize the Container (Host Side)
+**⚠️ IMPORTANT:** You must start by creating the isolated environment using the provided script on your host machine.
 
-Run the initialization script from your host terminal:
 ```bash
 ./init_distrobox.sh
 
 ```
 
-*This will create the distrobox container (e.g., Arch or Fedora based) with the necessary system-level configurations.*
+*This will create the distrobox container (e.g., Arch or Fedora based).*
 
-### Step 2: Configure the Environment
+### 2. Configure the Environment (Container Side)
 
-Once inside the container, you must install the required dependencies (Rust, Alsa, Udev, Wayland/X11 libs, FFmpeg).
+Enter the container and run the setup script to install dependencies (Rust, Alsa, Udev, FFmpeg).
 
-Run the setup script **inside the distrobox terminal**:
+**Inside the distrobox terminal:**
 
 ```bash
 ./setup_inside_distrobox.sh
@@ -42,7 +42,7 @@ Run the setup script **inside the distrobox terminal**:
 ## 🎮 How to Run
 
 1. Ensure you are inside the Distrobox container.
-2. Run the project using Cargo:
+2. Run the project:
 
 ```bash
 cargo run
@@ -55,23 +55,23 @@ cargo run
 | --- | --- |
 | **SPACE** | **Start/Stop Recording** |
 
-* **When Recording Starts:** The simulation switches to "Fixed Step" mode. Objects may appear to move in slow motion or fast forward depending on your PC's speed, but the recorded output will be perfectly smooth.
-* **When Recording Stops:** The simulation returns to real-time.
+* **Recording Mode:** When active, the simulation locks to a fixed 30 FPS timestep (`0.033s` per frame). The on-screen visual speed may change (slow motion or fast forward) depending on your PC's performance, but the saved frames will be perfectly smooth.
+* **Saving:** Frames are saved as PNGs in `out/rec_<TIMESTAMP>/`.
 
 ---
 
-## 📹 Generating Video (MP4)
+## 📹 generating Video (MP4)
 
-After recording, you will have a folder filled with PNG images (e.g., `out/rec_173843500/`). To convert these into a video:
+After recording, you will have a folder of sequential PNG images. To convert them into a video:
 
-1. Navigate to the recording folder:
+1. Navigate to the specific recording folder:
 ```bash
 cd out/rec_<TIMESTAMP>
 
 ```
 
 
-2. Run the processing script (ensure you copied `process_video.sh` to your project root or the recording folder):
+2. Run the processing script (ensure `process_video.sh` is in your project root):
 ```bash
 ../../process_video.sh
 
@@ -92,9 +92,9 @@ The result will be saved as **`output.mp4`**.
 
 ### "Unresolved import ScreenshotManager"
 
-This project uses **Bevy 0.18** (the current `main` branch or dev release). The API for screenshots changed significantly from 0.15.
+This project uses **Bevy 0.18** (dev/main branch).
 
-* **Fix:** Ensure your `Cargo.toml` points to the correct version and has the `png` feature enabled:
+* **Fix:** Ensure your `Cargo.toml` has the `png` feature enabled:
 ```toml
 [dependencies]
 bevy = { version = "0.18", features = ["png"] }
@@ -105,15 +105,10 @@ bevy = { version = "0.18", features = ["png"] }
 
 ### "Black or Transparent Screenshots"
 
-This usually happens if you try to read the `image.data` from the CPU before the GPU has synced.
-
-* **Fix:** This project uses the `save_to_disk` observer, which handles the GPU readback correctly. Ensure you are not manually trying to read the texture buffer in `main.rs`.
+* **Fix:** This project uses the `Screenshot::primary_window()` command with the `save_to_disk` observer, which safely handles GPU readback. Do not attempt to read `image.data` manually from the CPU.
 
 ### "FFmpeg not found"
 
-If the video conversion script fails:
-
-* Run `./setup_inside_distrobox.sh` again to ensure `ffmpeg` is installed.
-* Or manually install it: `sudo pacman -S ffmpeg` (Arch) or `sudo dnf install ffmpeg` (Fedora).
+* **Fix:** Run `./setup_inside_distrobox.sh` again to ensure `ffmpeg` is installed, or install it manually via your container's package manager (`pacman`, `dnf`, or `apt`).
 
 ```
